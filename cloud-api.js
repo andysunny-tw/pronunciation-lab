@@ -5,7 +5,7 @@ const CloudAPI = (() => {
   const useCloud = /^https:\/\//.test(url) && !url.includes("YOUR_APPS_SCRIPT_DEPLOYMENT_ID");
 
   function jsonp(action, params={}){
-    if(!useCloud) return Promise.reject(new Error("cloud-disabled"));
+    if(!useCloud) return Promise.reject(new Error("尚未設定雲端題庫 API"));
     return new Promise((resolve,reject)=>{
       const cb = "__pron_cb_" + Date.now() + "_" + Math.random().toString(36).slice(2);
       const qs = new URLSearchParams({action, callback:cb, ...params});
@@ -29,7 +29,7 @@ const CloudAPI = (() => {
   }
 
   async function postNoCors(action,payload={}){
-    if(!useCloud) throw new Error("cloud-disabled");
+    if(!useCloud) throw new Error("尚未設定雲端題庫 API");
     await fetch(url,{
       method:"POST",
       mode:"no-cors",

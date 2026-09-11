@@ -47,7 +47,7 @@ async function loadCloudData(force=false){
     console.warn("Cloud load failed",e);
     $("cloudStatus").textContent="使用離線備用題庫";
     $("cloudStatus").className="status offline";
-    if(force) alert("題庫更新失敗，已保留目前題庫。\n"+e.message);
+    if(force) alert("題庫更新失敗，已保留目前題庫。\n\n原因："+(e.message||"無法連線雲端題庫"));
   }finally{
     setRefreshState(false);
   }
