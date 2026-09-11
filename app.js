@@ -11,6 +11,8 @@ const DEFAULT_BANKS = {
   ]
 };
 let banks = DEFAULT_BANKS;
+let bankLabels = {easy:'離線備用單字',phrases:'離線備用片語'};
+let questionsUpdatedAt = null;
 let session = {queue:[],index:0,correct:0,wrong:0,startedAt:null,timer:null,current:null,answered:false};
 let soundOn = true;
 let pending = JSON.parse(localStorage.getItem("pendingAttempts")||"[]");
@@ -24,11 +26,33 @@ function init(){
   bind();
   if(CloudAPI.enabled()) loadCloudData();
 }
-async function loadCloudData(){
+async function loadCloudData(force=false){
   try{
-    const data = await CloudAPI.loadApp();
-    if(data?.banks && Object.keys(data.banks).length){ banks=data.banks; fillBanks(); }
-  }catch(e){ console.warn("Cloud load failed", e); }
+    setRefreshState(true);
+    const data = force ? await CloudAPI.refreshQuestions() : await CloudAPI.loadApp();
+    if(data?.banks && Object.keys(data.banks).length){
+      banks=data.banks;
+      bankLabels=data.bankLabels||{};
+      questionsUpdatedAt=data.updatedAt||null;
+      fillBanks();
+      $("cloudStatus").textContent = force ? "題庫已更新" : "雲端模式";
+      $("cloudStatus").className = "status online";
+    }else{
+      throw new Error("雲端題庫目前沒有啟用中的題目");
+    }
+  }catch(e){
+    console.warn("Cloud load failed",e);
+    $("cloudStatus").textContent="使用離線備用題庫";
+    $("cloudStatus").className="status offline";
+    if(force) alert("題庫更新失敗，已保留目前題庫。\n"+e.message);
+  }finally{
+    setRefreshState(false);
+  }
+}
+function setRefreshState(busy){
+  const b=$("refreshBankBtn");
+  b.disabled=busy;
+  b.textContent=busy?"更新中…":"↻ 更新題庫";
 }
 function bind(){
   $("startBtn").onclick=startSession;
@@ -37,6 +61,7 @@ function bind(){
   $("nextBtn").onclick=next;
   $("soundBtn").onclick=()=>{soundOn=!soundOn;$("soundBtn").textContent=soundOn?"🔊 音效":"🔇 靜音"};
   $("syncBtn").onclick=flushPending;
+  $("refreshBankBtn").onclick=()=>loadCloudData(true);
 }
 function restoreStudent(){
   const s=JSON.parse(localStorage.getItem("studentProfile")||"{}");
@@ -52,7 +77,7 @@ function fillBanks(){
   const sel=$("bankSelect"), cur=sel.value;
   sel.innerHTML="";
   Object.entries(banks).forEach(([k,v])=>{
-    const o=document.createElement("option");o.value=k;o.textContent=`${k}（${v.length}題）`;sel.appendChild(o);
+    const o=document.createElement("option");o.value=k;o.textContent=`${bankLabels[k]||k}（${v.length}題）`;sel.appendChild(o);
   });
   if([...sel.options].some(o=>o.value===cur)) sel.value=cur;
 }
@@ -125,8 +150,15 @@ function playFeedback(score){
   notes.forEach((f,i)=>{const o=ctx.createOscillator();o.frequency.value=f;o.connect(gain);o.start(ctx.currentTime+i*.12);o.stop(ctx.currentTime+i*.12+.10)});
   setTimeout(()=>ctx.close(),800);
 }
+function getStudentProfile(){
+  return {
+    className:$("studentClass").value.trim(),
+    studentNo:$("studentNo").value.trim(),
+    name:$("studentName").value.trim()
+  };
+}
 function enqueueAttempt(extra){
-  const s=saveStudent();
+  const s=getStudentProfile();
   pending.push({
     time:new Date().toISOString(), className:s.className, studentNo:s.studentNo, name:s.name,
     bank:$("bankSelect").value, target:session.current.text, kk:session.current.kk||"",

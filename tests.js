@@ -34,3 +34,11 @@ assert(shouldUseCloud("https://script.google.com/macros/s/abc/exec"), "valid clo
 assert(!shouldUseCloud("https://script.google.com/macros/s/YOUR_APPS_SCRIPT_DEPLOYMENT_ID/exec"), "placeholder cloud URL");
 assert(batchAttempts([1,2,3,4,5], 2).length === 3, "batch attempts");
 console.log("All V4.1 tests passed");
+
+const fs = require('fs');
+const html = fs.readFileSync(__dirname + '/index.html','utf8');
+const app = fs.readFileSync(__dirname + '/app.js','utf8');
+if(!html.includes('id="refreshBankBtn"')) throw new Error('refreshBankBtn missing');
+if(!app.includes('bankLabels[k]||k')) throw new Error('bank labels not used');
+if(!app.includes('loadCloudData(true)')) throw new Error('forced refresh not wired');
+console.log('V4.2 frontend cloud-question checks passed');
