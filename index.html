@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#3157d5">
+  <title>斗六家商英語發音練習</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <div>
+    <h1>English Pronunciation Lab</h1>
+    <p>KK 音標｜英語發音練習</p>
+  </div>
+  <div class="top-actions">
+    <span id="cloudStatus" class="status offline">本機模式</span>
+    <button id="soundBtn" class="secondary">🔊 音效</button>
+  </div>
+</header>
+
+<main class="shell">
+  <section class="panel compact controls">
+    <div class="field">
+      <label for="studentClass">班級</label>
+      <input id="studentClass" placeholder="例：二乙">
+    </div>
+    <div class="field">
+      <label for="studentNo">學號</label>
+      <input id="studentNo" placeholder="例：12">
+    </div>
+    <div class="field">
+      <label for="studentName">姓名</label>
+      <input id="studentName" placeholder="姓名">
+    </div>
+    <div class="field">
+      <label for="bankSelect">題庫</label>
+      <select id="bankSelect"></select>
+    </div>
+    <div class="field">
+      <label for="accentSelect">語音</label>
+      <select id="accentSelect">
+        <option value="en-US">美式英語</option>
+        <option value="en-GB">英式英語</option>
+      </select>
+    </div>
+    <button id="startBtn" class="primary">開始練習</button>
+  </section>
+
+  <section class="practice-grid">
+    <article class="panel prompt">
+      <div class="meta-row">
+        <span class="pill">READ ALOUD</span>
+        <span id="progressText" class="muted">0 / 0</span>
+      </div>
+      <h2 id="targetText">請先選擇題庫並開始</h2>
+      <div id="kkText" class="kk"></div>
+      <div id="syllablesText" class="syllables"></div>
+      <div id="translationText" class="translation"></div>
+
+      <div class="button-row">
+        <button id="listenBtn" class="secondary" disabled>🔊 標準發音</button>
+        <button id="speakBtn" class="danger" disabled>🎙 開始說話</button>
+        <button id="nextBtn" class="secondary" disabled>下一題 →</button>
+      </div>
+    </article>
+
+    <article class="panel result">
+      <div class="result-top">
+        <div>
+          <h3>辨識結果</h3>
+          <p id="speechResult">尚未辨識</p>
+        </div>
+        <div class="score-wrap">
+          <div id="scoreRing" class="score-ring"><span id="scoreValue">--</span></div>
+          <div id="feedbackText" class="feedback">等待作答</div>
+        </div>
+      </div>
+
+      <div class="metric-grid">
+        <div><strong id="accuracyValue">--</strong><span>Accuracy</span></div>
+        <div><strong id="fluencyValue">--</strong><span>Fluency</span></div>
+        <div><strong id="completeValue">--</strong><span>Completeness</span></div>
+        <div><strong id="prosodyValue">--</strong><span>Prosody</span></div>
+      </div>
+
+      <div id="permissionHelp" class="notice hidden">
+        <b>無法使用麥克風</b>
+        <span>請在瀏覽器網址列的網站設定中，將「麥克風」設為允許後重新整理。</span>
+      </div>
+    </article>
+  </section>
+
+  <section class="panel compact footer-stats">
+    <span>✅ <b id="correctCount">0</b></span>
+    <span>❌ <b id="wrongCount">0</b></span>
+    <span>⏱ <b id="timer">00:00</b></span>
+    <span>待同步 <b id="pendingCount">0</b></span>
+    <button id="syncBtn" class="secondary small">立即同步</button>
+  </section>
+</main>
+
+<script src="config.js"></script>
+<script src="logic.js"></script>
+<script src="cloud-api.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
