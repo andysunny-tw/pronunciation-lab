@@ -42,3 +42,10 @@ if(!html.includes('id="refreshBankBtn"')) throw new Error('refreshBankBtn missin
 if(!app.includes('bankLabels[k]||k')) throw new Error('bank labels not used');
 if(!app.includes('loadCloudData(true)')) throw new Error('forced refresh not wired');
 console.log('V4.2 frontend cloud-question checks passed');
+
+const app43 = fs.readFileSync(__dirname + '/app.js','utf8');
+const html43 = fs.readFileSync(__dirname + '/index.html','utf8');
+if(!html43.includes('id="assignmentHint"')) throw new Error('assignment hint missing');
+if(!app43.includes('eligibleAssignmentsForClass')) throw new Error('assignment filtering missing');
+if(!app43.includes('assignmentId:currentAssignment?.assignmentId')) throw new Error('attempt assignment metadata missing');
+console.log('V4.3 assignment UI checks passed');

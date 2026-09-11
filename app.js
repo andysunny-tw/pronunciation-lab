@@ -13,6 +13,8 @@ const DEFAULT_BANKS = {
 let banks = DEFAULT_BANKS;
 let bankLabels = {easy:'離線備用單字',phrases:'離線備用片語'};
 let questionsUpdatedAt = null;
+let assignments = [];
+let currentAssignment = null;
 let session = {queue:[],index:0,correct:0,wrong:0,startedAt:null,timer:null,current:null,answered:false};
 let soundOn = true;
 let pending = JSON.parse(localStorage.getItem("pendingAttempts")||"[]");
@@ -33,6 +35,7 @@ async function loadCloudData(force=false){
     if(data?.banks && Object.keys(data.banks).length){
       banks=data.banks;
       bankLabels=data.bankLabels||{};
+      assignments=data.assignments||[];
       questionsUpdatedAt=data.updatedAt||null;
       fillBanks();
       $("cloudStatus").textContent = force ? "題庫已更新" : "雲端模式";
@@ -62,6 +65,8 @@ function bind(){
   $("soundBtn").onclick=()=>{soundOn=!soundOn;$("soundBtn").textContent=soundOn?"🔊 音效":"🔇 靜音"};
   $("syncBtn").onclick=flushPending;
   $("refreshBankBtn").onclick=()=>loadCloudData(true);
+  $("studentClass").addEventListener("input",()=>fillBanks());
+  $("bankSelect").addEventListener("change",updateAssignmentHint);
 }
 function restoreStudent(){
   const s=JSON.parse(localStorage.getItem("studentProfile")||"{}");
@@ -73,17 +78,75 @@ function saveStudent(){
   if(CloudAPI.enabled()) CloudAPI.saveStudent(s).catch(()=>{});
   return s;
 }
-function fillBanks(){
-  const sel=$("bankSelect"), cur=sel.value;
-  sel.innerHTML="";
-  Object.entries(banks).forEach(([k,v])=>{
-    const o=document.createElement("option");o.value=k;o.textContent=`${bankLabels[k]||k}（${v.length}題）`;sel.appendChild(o);
+function todayKey(){
+  const d=new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+function eligibleAssignmentsForClass(cls){
+  const c=String(cls||"").trim(), today=todayKey();
+  return (assignments||[]).filter(a=>{
+    const classOk=a.className==="*"||a.className==="全校"||a.className===c;
+    const startOk=!a.startDate||today>=a.startDate;
+    const dueOk=!a.dueDate||today<=a.dueDate;
+    return classOk&&startOk&&dueOk&&banks[a.bankKey]&&banks[a.bankKey].length;
   });
-  if([...sel.options].some(o=>o.value===cur)) sel.value=cur;
+}
+function fillBanks(){
+  const sel=$("bankSelect"), previous=sel.value, cls=$("studentClass").value.trim();
+  sel.innerHTML="";
+  const eligible=eligibleAssignmentsForClass(cls);
+
+  if(eligible.length){
+    eligible.forEach(a=>{
+      const o=document.createElement("option");
+      o.value=a.assignmentId;
+      o.dataset.bankKey=a.bankKey;
+      o.textContent=`${a.title}｜${bankLabels[a.bankKey]||a.bankKey}`;
+      sel.appendChild(o);
+    });
+  }else{
+    Object.entries(banks).forEach(([k,v])=>{
+      const o=document.createElement("option");
+      o.value=`free:${k}`;
+      o.dataset.bankKey=k;
+      o.textContent=`自由練習｜${bankLabels[k]||k}（${v.length}題）`;
+      sel.appendChild(o);
+    });
+  }
+
+  if([...sel.options].some(o=>o.value===previous)) sel.value=previous;
+  updateAssignmentHint();
+}
+function getSelectedAssignment(){
+  const value=$("bankSelect").value;
+  if(!value || value.startsWith("free:")) return null;
+  return assignments.find(a=>a.assignmentId===value)||null;
+}
+function getSelectedBankKey(){
+  const opt=$("bankSelect").selectedOptions[0];
+  return opt?.dataset.bankKey || ($("bankSelect").value||"").replace(/^free:/,"");
+}
+function updateAssignmentHint(){
+  const hint=$("assignmentHint"), a=getSelectedAssignment();
+  currentAssignment=a;
+  hint.className="assignment-hint";
+  if(a){
+    let text=a.note||"老師指定作業";
+    if(a.dueDate) text+=`｜截止 ${a.dueDate}`;
+    hint.textContent=text;
+    if(a.dueDate){
+      const diff=(new Date(a.dueDate+"T23:59:59")-new Date())/86400000;
+      if(diff<=3) hint.classList.add("due-soon");
+    }
+  }else{
+    hint.textContent="目前沒有符合班級與日期的指定作業，顯示自由練習題庫。";
+  }
 }
 function startSession(){
   saveStudent();
-  const q=[...(banks[$("bankSelect").value]||[])];
+  const bankKey=getSelectedBankKey();
+  currentAssignment=getSelectedAssignment();
+  const q=[...(banks[bankKey]||[])];
   if(!q.length) return alert("此題庫沒有題目。");
   session={queue:q,index:0,correct:0,wrong:0,startedAt:Date.now(),timer:null,current:null,answered:false};
   $("listenBtn").disabled=false;$("speakBtn").disabled=false;$("nextBtn").disabled=false;
@@ -161,7 +224,8 @@ function enqueueAttempt(extra){
   const s=getStudentProfile();
   pending.push({
     time:new Date().toISOString(), className:s.className, studentNo:s.studentNo, name:s.name,
-    bank:$("bankSelect").value, target:session.current.text, kk:session.current.kk||"",
+    assignmentId:currentAssignment?.assignmentId||"", assignmentTitle:currentAssignment?.title||"",
+    bank:getSelectedBankKey(), target:session.current.text, kk:session.current.kk||"",
     transcript:extra.transcript, score:extra.score, pass:extra.score>=(window.APP_CONFIG.PASS_SCORE||82),
     assessmentMode:"browser-speech"
   });
