@@ -97,22 +97,28 @@ function fillBanks(){
   const eligible=eligibleAssignmentsForClass(cls);
 
   if(eligible.length){
+    const assignedGroup=document.createElement("optgroup");
+    assignedGroup.label="【老師指定作業】";
     eligible.forEach(a=>{
       const o=document.createElement("option");
       o.value=a.assignmentId;
       o.dataset.bankKey=a.bankKey;
-      o.textContent=`${a.title}｜${bankLabels[a.bankKey]||a.bankKey}`;
-      sel.appendChild(o);
+      o.textContent=`${a.title}｜${bankLabels[a.bankKey]||a.bankKey}（${banks[a.bankKey].length}題）`;
+      assignedGroup.appendChild(o);
     });
-  }else{
-    Object.entries(banks).forEach(([k,v])=>{
-      const o=document.createElement("option");
-      o.value=`free:${k}`;
-      o.dataset.bankKey=k;
-      o.textContent=`自由練習｜${bankLabels[k]||k}（${v.length}題）`;
-      sel.appendChild(o);
-    });
+    sel.appendChild(assignedGroup);
   }
+
+  const freeGroup=document.createElement("optgroup");
+  freeGroup.label="【自由練習】";
+  Object.entries(banks).forEach(([k,v])=>{
+    const o=document.createElement("option");
+    o.value=`free:${k}`;
+    o.dataset.bankKey=k;
+    o.textContent=`${bankLabels[k]||k}（${v.length}題）`;
+    freeGroup.appendChild(o);
+  });
+  sel.appendChild(freeGroup);
 
   if([...sel.options].some(o=>o.value===previous)) sel.value=previous;
   updateAssignmentHint();
@@ -139,7 +145,7 @@ function updateAssignmentHint(){
       if(diff<=3) hint.classList.add("due-soon");
     }
   }else{
-    hint.textContent="目前沒有符合班級與日期的指定作業，顯示自由練習題庫。";
+    hint.textContent="自由練習模式｜可直接選擇目前雲端已啟用的題庫，不受班級作業限制。";
   }
 }
 function startSession(){
